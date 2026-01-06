@@ -470,6 +470,110 @@
                 font-size: 14px;
             }
         }
+
+        /* Mini Floating Window */
+        .mini-timer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #1b263b 0%, #0d1b2a 100%);
+            border-radius: 16px;
+            padding: 12px 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            animation: miniSlideIn 0.3s ease;
+            cursor: move;
+            touch-action: none;
+            user-select: none;
+        }
+        .mini-timer.visible {
+            display: flex;
+        }
+        .mini-timer.dragging {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        @keyframes miniSlideIn {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .mini-timer-time {
+            font-family: 'M PLUS Rounded 1c', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--energy-orange);
+            min-width: 90px;
+            text-align: center;
+        }
+        .mini-timer-time.timeup {
+            color: var(--power-red);
+            animation: timeupPulse 0.5s infinite;
+        }
+        .mini-timer-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .mini-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .mini-btn-stop {
+            background: var(--power-red);
+            color: white;
+        }
+        .mini-btn-stop:hover {
+            background: #ee5a5a;
+            transform: scale(1.1);
+        }
+        .mini-btn-stop.paused {
+            background: var(--success-green);
+        }
+        .mini-btn-close {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--slate-gray);
+        }
+        .mini-btn-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
+        }
+        .mini-timer-show-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--gradient-power);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            animation: miniSlideIn 0.3s ease;
+        }
+        .mini-timer-show-btn.visible {
+            display: flex;
+        }
+        .mini-timer-show-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(255, 107, 107, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -502,6 +606,18 @@
             <button class="timer-btn btn-set" id="btnSet">Set</button>
         </div>
     </div>
+
+    <!-- Mini Floating Timer -->
+    <div class="mini-timer" id="miniTimer">
+        <div class="mini-timer-time" id="miniTimerDisplay">00:00:00</div>
+        <div class="mini-timer-buttons">
+            <button class="mini-btn mini-btn-stop" id="miniBtnStop" title="Stop">&#9632;</button>
+            <button class="mini-btn mini-btn-close" id="miniBtnClose" title="Hide">&times;</button>
+        </div>
+    </div>
+
+    <!-- Mini Timer Show Button (when hidden) -->
+    <button class="mini-timer-show-btn" id="miniTimerShowBtn" title="Show Timer">&#9202;</button>
 
     <!-- Settings Modal -->
     <div class="modal-root" id="settingsModal">
@@ -591,7 +707,9 @@
             soundRepeat: false,
             autoRepeat: false,
             intervalId: null,
-            soundIntervalId: null
+            soundIntervalId: null,
+            miniTimerVisible: true,
+            miniTimerHidden: false  // User manually hidden
         };
 
         // Temp state for modal
@@ -727,7 +845,10 @@
 
         function updateDisplay() {
             const display = document.getElementById('timerDisplay');
-            display.textContent = formatTime(state.remainingTime);
+            const miniDisplay = document.getElementById('miniTimerDisplay');
+            const timeStr = formatTime(state.remainingTime);
+            display.textContent = timeStr;
+            miniDisplay.textContent = timeStr;
         }
 
         function startTimer() {
@@ -736,6 +857,7 @@
 
             state.isRunning = true;
             updateUI();
+            showMiniTimer();
 
             state.intervalId = setInterval(() => {
                 state.remainingTime--;
@@ -763,12 +885,15 @@
             updateDisplay();
             updateUI();
             document.getElementById('timerDisplay').classList.remove('timeup');
+            document.getElementById('miniTimerDisplay').classList.remove('timeup');
             document.getElementById('timerLabel').textContent = 'Ready';
+            hideMiniTimer();
         }
 
         function timerComplete() {
             stopTimer();
             document.getElementById('timerDisplay').classList.add('timeup');
+            document.getElementById('miniTimerDisplay').classList.add('timeup');
             document.getElementById('timerLabel').textContent = "Time's Up!";
 
             // Play alarm
@@ -787,6 +912,7 @@
                     state.remainingTime = state.defaultTime;
                     updateDisplay();
                     document.getElementById('timerDisplay').classList.remove('timeup');
+                    document.getElementById('miniTimerDisplay').classList.remove('timeup');
                     document.getElementById('timerLabel').textContent = 'Running';
                     startTimer();
                 }, 3000);
@@ -824,6 +950,127 @@
             // Update status indicators
             document.getElementById('statusRepeat').classList.toggle('active', state.autoRepeat);
             document.getElementById('statusSoundRepeat').classList.toggle('active', state.soundRepeat);
+
+            // Update mini timer stop button
+            const miniBtnStop = document.getElementById('miniBtnStop');
+            if (state.isRunning) {
+                miniBtnStop.innerHTML = '&#9632;'; // Stop symbol
+                miniBtnStop.classList.remove('paused');
+            } else {
+                miniBtnStop.innerHTML = '&#9654;'; // Play symbol
+                miniBtnStop.classList.add('paused');
+            }
+        }
+
+        // ==================== Mini Timer Functions ====================
+        function showMiniTimer() {
+            if (state.miniTimerHidden) {
+                // User has manually hidden, show the restore button instead
+                document.getElementById('miniTimerShowBtn').classList.add('visible');
+            } else {
+                document.getElementById('miniTimer').classList.add('visible');
+                document.getElementById('miniTimerShowBtn').classList.remove('visible');
+            }
+        }
+
+        function hideMiniTimer() {
+            document.getElementById('miniTimer').classList.remove('visible');
+            document.getElementById('miniTimerShowBtn').classList.remove('visible');
+            state.miniTimerHidden = false;
+        }
+
+        function toggleMiniTimerVisibility(forceHide = false) {
+            const miniTimer = document.getElementById('miniTimer');
+            const showBtn = document.getElementById('miniTimerShowBtn');
+
+            if (forceHide || miniTimer.classList.contains('visible')) {
+                // Hide mini timer, show restore button
+                miniTimer.classList.remove('visible');
+                if (state.isRunning || state.remainingTime <= 0) {
+                    showBtn.classList.add('visible');
+                    state.miniTimerHidden = true;
+                }
+            } else {
+                // Show mini timer
+                miniTimer.classList.add('visible');
+                showBtn.classList.remove('visible');
+                state.miniTimerHidden = false;
+            }
+        }
+
+        // ==================== Mini Timer Drag ====================
+        function initMiniTimerDrag() {
+            const miniTimer = document.getElementById('miniTimer');
+            let isDragging = false;
+            let startX, startY, startLeft, startBottom;
+
+            function onStart(e) {
+                // Don't drag if clicking buttons
+                if (e.target.closest('.mini-timer-buttons')) return;
+
+                isDragging = true;
+                miniTimer.classList.add('dragging');
+
+                const rect = miniTimer.getBoundingClientRect();
+                startLeft = rect.left;
+                startBottom = window.innerHeight - rect.bottom;
+
+                if (e.type === 'touchstart') {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                } else {
+                    startX = e.clientX;
+                    startY = e.clientY;
+                }
+
+                e.preventDefault();
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+
+                let clientX, clientY;
+                if (e.type === 'touchmove') {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                const deltaX = clientX - startX;
+                const deltaY = startY - clientY; // Inverted for bottom positioning
+
+                let newLeft = startLeft + deltaX;
+                let newBottom = startBottom + deltaY;
+
+                // Bounds checking
+                const maxLeft = window.innerWidth - miniTimer.offsetWidth - 10;
+                const maxBottom = window.innerHeight - miniTimer.offsetHeight - 10;
+
+                newLeft = Math.max(10, Math.min(newLeft, maxLeft));
+                newBottom = Math.max(10, Math.min(newBottom, maxBottom));
+
+                miniTimer.style.left = newLeft + 'px';
+                miniTimer.style.right = 'auto';
+                miniTimer.style.bottom = newBottom + 'px';
+            }
+
+            function onEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                miniTimer.classList.remove('dragging');
+            }
+
+            // Mouse events
+            miniTimer.addEventListener('mousedown', onStart);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+
+            // Touch events
+            miniTimer.addEventListener('touchstart', onStart, { passive: false });
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
         }
 
         // ==================== Modal Functions ====================
@@ -973,6 +1220,34 @@
             document.getElementById('soundRepeatOn').addEventListener('click', () => updateToggle('soundRepeat', true));
             document.getElementById('autoRepeatOff').addEventListener('click', () => updateToggle('autoRepeat', false));
             document.getElementById('autoRepeatOn').addEventListener('click', () => updateToggle('autoRepeat', true));
+
+            // Mini Timer buttons
+            document.getElementById('miniBtnStop').addEventListener('click', () => {
+                if (state.isRunning) {
+                    stopTimer();
+                } else if (state.remainingTime > 0) {
+                    startTimer();
+                } else {
+                    // Timer is at 0, stop alarm and reset
+                    stopAlarm();
+                    document.getElementById('timerDisplay').classList.remove('timeup');
+                    document.getElementById('miniTimerDisplay').classList.remove('timeup');
+                    state.remainingTime = state.defaultTime;
+                    updateDisplay();
+                    document.getElementById('timerLabel').textContent = 'Ready';
+                }
+            });
+
+            document.getElementById('miniBtnClose').addEventListener('click', () => {
+                toggleMiniTimerVisibility(true);
+            });
+
+            document.getElementById('miniTimerShowBtn').addEventListener('click', () => {
+                toggleMiniTimerVisibility();
+            });
+
+            // Initialize mini timer drag
+            initMiniTimerDrag();
         }
 
         // Initialize
