@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@500;700&family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-navy: #0d1b2a;
+            --deep-navy: #1b263b;
+            --navy-blue: #415a77;
+            --slate-gray: #778da9;
+            --energy-orange: #ff9f43;
+            --golden-yellow: #feca57;
+            --power-red: #ff6b6b;
+            --success-green: #26de81;
+            --muscle-purple: #a55eea;
+            --gradient-power: linear-gradient(135deg, #ff9f43 0%, #ff6b6b 100%);
+            --gradient-energy: linear-gradient(135deg, #feca57 0%, #ff9f43 100%);
+            --gradient-muscle: linear-gradient(135deg, #a55eea 0%, #ff6b6b 100%);
+            --gradient-dark: linear-gradient(180deg, #1b263b 0%, #0d1b2a 100%);
+            --text-primary: #0d1b2a;
+            --text-secondary: #415a77;
+            --text-muted: #778da9;
+            --text-light: #e0e1dd;
+            --bg-main: #f8f9fa;
+            --bg-card: #ffffff;
+            --bg-dark: #0d1b2a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'M PLUS Rounded 1c', -apple-system, system-ui, sans-serif;
+            background: var(--gradient-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .heading-serif { font-family: 'Noto Serif JP', serif; font-weight: 700; }
+
+        /* Container */
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .header-title {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .header-title::before {
+            content: 'Timer';
+            font-size: 16px;
+        }
+
+        /* Timer Display */
+        .timer-display-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+        }
+        .timer-display {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 40px 30px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            width: 100%;
+        }
+        .timer-time {
+            font-family: 'M PLUS Rounded 1c', monospace;
+            font-size: 72px;
+            font-weight: 700;
+            color: var(--text-light);
+            letter-spacing: 4px;
+            text-shadow: 0 4px 20px rgba(255, 159, 67, 0.3);
+            transition: all 0.3s ease;
+        }
+        .timer-time.running {
+            color: var(--energy-orange);
+            text-shadow: 0 4px 30px rgba(255, 159, 67, 0.5);
+        }
+        .timer-time.timeup {
+            color: var(--power-red);
+            animation: timeupPulse 0.5s infinite;
+        }
+        @keyframes timeupPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.02); }
+        }
+        .timer-label {
+            font-size: 14px;
+            color: var(--slate-gray);
+            margin-top: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Buttons */
+        .timer-buttons {
+            display: flex;
+            gap: 12px;
+            padding: 20px 0;
+        }
+        .timer-btn {
+            flex: 1;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-start {
+            background: var(--gradient-power);
+            color: white;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);
+        }
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 107, 107, 0.5);
+        }
+        .btn-start.running {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+        }
+        .btn-clear {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-clear:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .btn-set {
+            background: var(--gradient-muscle);
+            color: white;
+            box-shadow: 0 4px 20px rgba(165, 94, 234, 0.4);
+        }
+        .btn-set:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(165, 94, 234, 0.5);
+        }
+
+        /* Status Indicators */
+        .status-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px 0 20px;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--slate-gray);
+        }
+        .status-item.active {
+            color: var(--success-green);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--slate-gray);
+        }
+        .status-item.active .status-dot {
+            background: var(--success-green);
+            box-shadow: 0 0 8px var(--success-green);
+        }
+
+        /* Modal */
+        .modal-root {
+            position: fixed;
+            inset: 0;
+            display: none;
+            z-index: 100;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal-root.visible {
+            display: flex;
+        }
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(13, 27, 42, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 0;
+        }
+        .modal-panel {
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border-radius: 24px 24px 0 0;
+            padding: 24px 20px;
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .modal-panel::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: rgba(13, 27, 42, 0.15);
+            border-radius: 2px;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-title {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark-navy);
+            text-align: center;
+            margin: 10px 0 24px;
+        }
+
+        /* Slider Section */
+        .slider-section {
+            margin-bottom: 24px;
+        }
+        .slider-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .slider-group {
+            margin-bottom: 20px;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .slider-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .slider-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--energy-orange);
+            min-width: 40px;
+            text-align: right;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(13, 27, 42, 0.1);
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--gradient-power);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(255, 107, 107, 0.4);
+            transition: transform 0.2s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--gradient-power);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 10px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Sound Selection */
+        .sound-section {
+            margin-bottom: 24px;
+        }
+        .sound-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .sound-option {
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid rgba(13, 27, 42, 0.1);
+            background: var(--bg-main);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .sound-option:hover {
+            border-color: var(--energy-orange);
+            background: rgba(255, 159, 67, 0.05);
+        }
+        .sound-option.selected {
+            border-color: var(--energy-orange);
+            background: rgba(255, 159, 67, 0.1);
+            color: var(--energy-orange);
+            font-weight: 700;
+        }
+        .sound-option.selected::before {
+            content: '● ';
+        }
+        .preview-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid var(--muscle-purple);
+            background: transparent;
+            color: var(--muscle-purple);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .preview-btn:hover {
+            background: var(--muscle-purple);
+            color: white;
+        }
+
+        /* Toggle Section */
+        .toggle-section {
+            margin-bottom: 24px;
+        }
+        .toggle-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(13, 27, 42, 0.06);
+        }
+        .toggle-item:last-child {
+            border-bottom: none;
+        }
+        .toggle-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .toggle-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .toggle-switch {
+            display: flex;
+            gap: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid rgba(13, 27, 42, 0.1);
+        }
+        .toggle-option {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-main);
+            color: var(--text-muted);
+            border: none;
+        }
+        .toggle-option.active {
+            background: var(--gradient-power);
+            color: white;
+        }
+
+        /* Modal Footer */
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .btn-cancel {
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            border: 2px solid rgba(13, 27, 42, 0.15);
+            background: var(--bg-main);
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-cancel:hover {
+            background: rgba(13, 27, 42, 0.05);
+        }
+        .btn-save {
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            background: var(--gradient-power);
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 400px) {
+            .timer-time {
+                font-size: 56px;
+            }
+            .timer-btn {
+                padding: 14px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="header-title heading-serif"></h1>
+        </header>
+
+        <div class="timer-display-wrapper">
+            <div class="timer-display">
+                <div class="timer-time" id="timerDisplay">00:05:00</div>
+                <div class="timer-label" id="timerLabel">Ready</div>
+            </div>
+        </div>
+
+        <div class="status-indicators">
+            <div class="status-item" id="statusRepeat">
+                <span class="status-dot"></span>
+                <span>Repeat</span>
+            </div>
+            <div class="status-item" id="statusSoundRepeat">
+                <span class="status-dot"></span>
+                <span>Sound Loop</span>
+            </div>
+        </div>
+
+        <div class="timer-buttons">
+            <button class="timer-btn btn-start" id="btnStart">Start</button>
+            <button class="timer-btn btn-clear" id="btnClear">Clear</button>
+            <button class="timer-btn btn-set" id="btnSet">Set</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-root" id="settingsModal">
+        <div class="modal-backdrop" id="modalBackdrop"></div>
+        <div class="modal-panel">
+            <h2 class="modal-title heading-serif">Settings</h2>
+
+            <!-- Time Sliders -->
+            <div class="slider-section">
+                <div class="slider-section-title">Time</div>
+
+                <div class="slider-group">
+                    <div class="slider-label-row">
+                        <span class="slider-label">Hours</span>
+                        <span class="slider-value" id="hourValue">00</span>
+                    </div>
+                    <input type="range" id="hourSlider" min="0" max="23" value="0">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label-row">
+                        <span class="slider-label">Minutes</span>
+                        <span class="slider-value" id="minuteValue">05</span>
+                    </div>
+                    <input type="range" id="minuteSlider" min="0" max="59" value="5">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label-row">
+                        <span class="slider-label">Seconds</span>
+                        <span class="slider-value" id="secondValue">00</span>
+                    </div>
+                    <input type="range" id="secondSlider" min="0" max="59" value="0">
+                </div>
+            </div>
+
+            <!-- Sound Selection -->
+            <div class="sound-section">
+                <div class="slider-section-title">Alarm Sound</div>
+                <div class="sound-options">
+                    <div class="sound-option selected" data-sound="default">Default</div>
+                    <div class="sound-option" data-sound="metallophone">Metallophone</div>
+                    <div class="sound-option" data-sound="xylophone">Xylophone</div>
+                    <div class="sound-option" data-sound="bell">Bell</div>
+                </div>
+                <button class="preview-btn" id="previewSound">Preview</button>
+            </div>
+
+            <!-- Toggles -->
+            <div class="toggle-section">
+                <div class="toggle-item">
+                    <div>
+                        <div class="toggle-label">Sound Repeat</div>
+                        <div class="toggle-desc">Repeat alarm until stopped</div>
+                    </div>
+                    <div class="toggle-switch">
+                        <button class="toggle-option active" data-value="off" id="soundRepeatOff">OFF</button>
+                        <button class="toggle-option" data-value="on" id="soundRepeatOn">ON</button>
+                    </div>
+                </div>
+                <div class="toggle-item">
+                    <div>
+                        <div class="toggle-label">Auto Repeat</div>
+                        <div class="toggle-desc">Auto restart timer when finished</div>
+                    </div>
+                    <div class="toggle-switch">
+                        <button class="toggle-option active" data-value="off" id="autoRepeatOff">OFF</button>
+                        <button class="toggle-option" data-value="on" id="autoRepeatOn">ON</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" id="btnCancel">Cancel</button>
+                <button class="btn-save" id="btnSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== State ====================
+        const state = {
+            isRunning: false,
+            remainingTime: 300, // seconds
+            defaultTime: 300,   // seconds
+            soundType: 'default',
+            soundRepeat: false,
+            autoRepeat: false,
+            intervalId: null,
+            soundIntervalId: null
+        };
+
+        // Temp state for modal
+        let tempSettings = {};
+
+        // ==================== Audio Context ====================
+        let audioContext = null;
+
+        function getAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            return audioContext;
+        }
+
+        // ==================== Sound Generation ====================
+        function playSound(type) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            switch (type) {
+                case 'default':
+                    playDefaultSound(ctx, now);
+                    break;
+                case 'metallophone':
+                    playMetallophoneSound(ctx, now);
+                    break;
+                case 'xylophone':
+                    playXylophoneSound(ctx, now);
+                    break;
+                case 'bell':
+                    playBellSound(ctx, now);
+                    break;
+            }
+        }
+
+        function playDefaultSound(ctx, now) {
+            // Simple beep at 800Hz
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, now);
+
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+
+        function playMetallophoneSound(ctx, now) {
+            // Metallic sound with multiple harmonics
+            const frequencies = [523, 659, 784]; // C5, E5, G5
+
+            frequencies.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now);
+
+                gain.gain.setValueAtTime(0.3, now + i * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.8);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now + i * 0.1);
+                osc.stop(now + i * 0.1 + 0.8);
+            });
+        }
+
+        function playXylophoneSound(ctx, now) {
+            // Wooden mallet sound with quick decay
+            const frequencies = [880, 1047, 1319]; // A5, C6, E6
+
+            frequencies.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + i * 0.15);
+
+                gain.gain.setValueAtTime(0.4, now + i * 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now + i * 0.15);
+                osc.stop(now + i * 0.15 + 0.3);
+            });
+        }
+
+        function playBellSound(ctx, now) {
+            // Bell-like sound with harmonics
+            const fundamental = 440;
+            const harmonics = [1, 2, 2.4, 3, 4.5];
+
+            harmonics.forEach((mult, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(fundamental * mult, now);
+
+                const volume = 0.4 / (i + 1);
+                gain.gain.setValueAtTime(volume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 2);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 2);
+            });
+        }
+
+        // ==================== Timer Functions ====================
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            const display = document.getElementById('timerDisplay');
+            display.textContent = formatTime(state.remainingTime);
+        }
+
+        function startTimer() {
+            if (state.isRunning) return;
+            if (state.remainingTime <= 0) return;
+
+            state.isRunning = true;
+            updateUI();
+
+            state.intervalId = setInterval(() => {
+                state.remainingTime--;
+                updateDisplay();
+
+                if (state.remainingTime <= 0) {
+                    timerComplete();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            state.isRunning = false;
+            if (state.intervalId) {
+                clearInterval(state.intervalId);
+                state.intervalId = null;
+            }
+            stopAlarm();
+            updateUI();
+        }
+
+        function clearTimer() {
+            stopTimer();
+            state.remainingTime = state.defaultTime;
+            updateDisplay();
+            updateUI();
+            document.getElementById('timerDisplay').classList.remove('timeup');
+            document.getElementById('timerLabel').textContent = 'Ready';
+        }
+
+        function timerComplete() {
+            stopTimer();
+            document.getElementById('timerDisplay').classList.add('timeup');
+            document.getElementById('timerLabel').textContent = "Time's Up!";
+
+            // Play alarm
+            playSound(state.soundType);
+
+            if (state.soundRepeat) {
+                state.soundIntervalId = setInterval(() => {
+                    playSound(state.soundType);
+                }, 3000);
+            }
+
+            // Auto repeat
+            if (state.autoRepeat) {
+                setTimeout(() => {
+                    stopAlarm();
+                    state.remainingTime = state.defaultTime;
+                    updateDisplay();
+                    document.getElementById('timerDisplay').classList.remove('timeup');
+                    document.getElementById('timerLabel').textContent = 'Running';
+                    startTimer();
+                }, 3000);
+            }
+        }
+
+        function stopAlarm() {
+            if (state.soundIntervalId) {
+                clearInterval(state.soundIntervalId);
+                state.soundIntervalId = null;
+            }
+        }
+
+        function updateUI() {
+            const btnStart = document.getElementById('btnStart');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const timerLabel = document.getElementById('timerLabel');
+
+            if (state.isRunning) {
+                btnStart.textContent = 'Stop';
+                btnStart.classList.add('running');
+                timerDisplay.classList.add('running');
+                timerLabel.textContent = 'Running';
+            } else {
+                btnStart.textContent = 'Start';
+                btnStart.classList.remove('running');
+                timerDisplay.classList.remove('running');
+                if (state.remainingTime > 0 && state.remainingTime === state.defaultTime) {
+                    timerLabel.textContent = 'Ready';
+                } else if (state.remainingTime > 0) {
+                    timerLabel.textContent = 'Paused';
+                }
+            }
+
+            // Update status indicators
+            document.getElementById('statusRepeat').classList.toggle('active', state.autoRepeat);
+            document.getElementById('statusSoundRepeat').classList.toggle('active', state.soundRepeat);
+        }
+
+        // ==================== Modal Functions ====================
+        function openModal() {
+            // Store current settings in temp
+            tempSettings = {
+                hours: Math.floor(state.defaultTime / 3600),
+                minutes: Math.floor((state.defaultTime % 3600) / 60),
+                seconds: state.defaultTime % 60,
+                soundType: state.soundType,
+                soundRepeat: state.soundRepeat,
+                autoRepeat: state.autoRepeat
+            };
+
+            // Update modal UI
+            document.getElementById('hourSlider').value = tempSettings.hours;
+            document.getElementById('minuteSlider').value = tempSettings.minutes;
+            document.getElementById('secondSlider').value = tempSettings.seconds;
+            document.getElementById('hourValue').textContent = String(tempSettings.hours).padStart(2, '0');
+            document.getElementById('minuteValue').textContent = String(tempSettings.minutes).padStart(2, '0');
+            document.getElementById('secondValue').textContent = String(tempSettings.seconds).padStart(2, '0');
+
+            // Sound selection
+            document.querySelectorAll('.sound-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.sound === tempSettings.soundType);
+            });
+
+            // Toggles
+            updateToggle('soundRepeat', tempSettings.soundRepeat);
+            updateToggle('autoRepeat', tempSettings.autoRepeat);
+
+            document.getElementById('settingsModal').classList.add('visible');
+        }
+
+        function closeModal() {
+            document.getElementById('settingsModal').classList.remove('visible');
+        }
+
+        function saveSettings() {
+            const hours = parseInt(document.getElementById('hourSlider').value);
+            const minutes = parseInt(document.getElementById('minuteSlider').value);
+            const seconds = parseInt(document.getElementById('secondSlider').value);
+
+            state.defaultTime = hours * 3600 + minutes * 60 + seconds;
+            state.remainingTime = state.defaultTime;
+            state.soundType = tempSettings.soundType;
+            state.soundRepeat = tempSettings.soundRepeat;
+            state.autoRepeat = tempSettings.autoRepeat;
+
+            updateDisplay();
+            updateUI();
+            saveToStorage();
+            closeModal();
+        }
+
+        function updateToggle(name, value) {
+            if (name === 'soundRepeat') {
+                document.getElementById('soundRepeatOff').classList.toggle('active', !value);
+                document.getElementById('soundRepeatOn').classList.toggle('active', value);
+                tempSettings.soundRepeat = value;
+            } else if (name === 'autoRepeat') {
+                document.getElementById('autoRepeatOff').classList.toggle('active', !value);
+                document.getElementById('autoRepeatOn').classList.toggle('active', value);
+                tempSettings.autoRepeat = value;
+            }
+        }
+
+        // ==================== Storage ====================
+        function saveToStorage() {
+            localStorage.setItem('mukimuki_timer_default', state.defaultTime);
+            localStorage.setItem('mukimuki_timer_sound', state.soundType);
+            localStorage.setItem('mukimuki_timer_repeat', state.soundRepeat);
+            localStorage.setItem('mukimuki_timer_auto', state.autoRepeat);
+        }
+
+        function loadFromStorage() {
+            const defaultTime = localStorage.getItem('mukimuki_timer_default');
+            const soundType = localStorage.getItem('mukimuki_timer_sound');
+            const soundRepeat = localStorage.getItem('mukimuki_timer_repeat');
+            const autoRepeat = localStorage.getItem('mukimuki_timer_auto');
+
+            if (defaultTime !== null) state.defaultTime = parseInt(defaultTime);
+            if (soundType !== null) state.soundType = soundType;
+            if (soundRepeat !== null) state.soundRepeat = soundRepeat === 'true';
+            if (autoRepeat !== null) state.autoRepeat = autoRepeat === 'true';
+
+            state.remainingTime = state.defaultTime;
+        }
+
+        // ==================== Event Listeners ====================
+        function init() {
+            loadFromStorage();
+            updateDisplay();
+            updateUI();
+
+            // Main buttons
+            document.getElementById('btnStart').addEventListener('click', () => {
+                if (state.isRunning) {
+                    stopTimer();
+                } else {
+                    // Stop alarm if playing
+                    stopAlarm();
+                    document.getElementById('timerDisplay').classList.remove('timeup');
+                    if (state.remainingTime <= 0) {
+                        state.remainingTime = state.defaultTime;
+                        updateDisplay();
+                    }
+                    startTimer();
+                }
+            });
+
+            document.getElementById('btnClear').addEventListener('click', clearTimer);
+            document.getElementById('btnSet').addEventListener('click', openModal);
+
+            // Modal
+            document.getElementById('modalBackdrop').addEventListener('click', closeModal);
+            document.getElementById('btnCancel').addEventListener('click', closeModal);
+            document.getElementById('btnSave').addEventListener('click', saveSettings);
+
+            // Sliders
+            document.getElementById('hourSlider').addEventListener('input', (e) => {
+                document.getElementById('hourValue').textContent = String(e.target.value).padStart(2, '0');
+            });
+            document.getElementById('minuteSlider').addEventListener('input', (e) => {
+                document.getElementById('minuteValue').textContent = String(e.target.value).padStart(2, '0');
+            });
+            document.getElementById('secondSlider').addEventListener('input', (e) => {
+                document.getElementById('secondValue').textContent = String(e.target.value).padStart(2, '0');
+            });
+
+            // Sound options
+            document.querySelectorAll('.sound-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    document.querySelectorAll('.sound-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    tempSettings.soundType = opt.dataset.sound;
+                });
+            });
+
+            // Preview sound
+            document.getElementById('previewSound').addEventListener('click', () => {
+                playSound(tempSettings.soundType);
+            });
+
+            // Toggles
+            document.getElementById('soundRepeatOff').addEventListener('click', () => updateToggle('soundRepeat', false));
+            document.getElementById('soundRepeatOn').addEventListener('click', () => updateToggle('soundRepeat', true));
+            document.getElementById('autoRepeatOff').addEventListener('click', () => updateToggle('autoRepeat', false));
+            document.getElementById('autoRepeatOn').addEventListener('click', () => updateToggle('autoRepeat', true));
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
